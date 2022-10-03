@@ -1,0 +1,15 @@
+---
+  - name: Updating container
+    become_method: dzdo
+    hosts: all
+    connection: local
+    tasks:
+    - name: try
+      #shell: "ls -la {{ item }}"
+      command: ls -lRa
+      register: files
+
+    - name: use shell to print
+      debug:
+        var: files
+
