@@ -1,0 +1,46 @@
+---
+- name: Pull latest Ubuntu Image
+  hosts: localhost
+  tasks:
+  - name: Pull Ubuntu Image
+    docker_container:
+      name: "ubuntu-ansible"
+      image: "ubuntu:latest"
+      state: started
+      command: tail -f /dev/null
+  - name: Add Ubuntu Image to Ansible Hosts
+    add_host:
+      name: "ubuntu-ansible"
+      ansible_connection: docker
+      ansible_ssh_user: root
+
+- name: Configure Ubuntu Base Image
+  hosts: "ubuntu-ansible"
+  gather_facts: false
+  tasks:
+    - name: Install Python3
+      raw: apt-get update && apt-get install python3 vim -y
+    - name: Install Rsync
+      apt:
+        name: rsync
+    - name: Copy local configuration Files to Vim Conf
+      synchronize:
+        src: ./vimconf/
+        dest: /root
+    - name: Clean up Python 3 and Prequisites
+      raw: apt purge python3 rsync -y
+
+- name: Snapshot base image to create newly configured Imafe
+  hosts: localhost
+  tasks:
+    - name: Commit Docker image
+      command: docker commit "ubuntu-ansible" "ubuntu-ansible_demo"
+
+- name: Clean Up Docker Containers
+  hosts: localhost
+  tasks:
+    - name: Remove Running Base Image
+      docker_container:
+        name: ubuntu-ansible
+        state: absent
+        force_kill: yes
